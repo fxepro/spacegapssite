@@ -6,13 +6,17 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     sqlite \
+    sqlite-dev \
     libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
     libzip-dev \
     oniguruma-dev \
     libxml2-dev \
     curl
 
 # ── PHP extensions ───────────────────────────────────────────
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 RUN docker-php-ext-install \
     pdo \
     pdo_sqlite \

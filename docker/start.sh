@@ -46,6 +46,9 @@ if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
     php artisan db:seed --force
 fi
 
+echo "==> Verifying built assets..."
+ls -la /app/public/build/ 2>/dev/null && ls -la /app/public/build/assets/ 2>/dev/null || echo "WARNING: public/build not found!"
+
 echo "==> Starting PHP-FPM..."
 php-fpm -D
 

@@ -17,8 +17,16 @@ if [ ! -f "$DB_PATH" ]; then
     touch "$DB_PATH"
 fi
 
+# ── Ensure storage directories exist ─────────────────────────
+mkdir -p storage/framework/views \
+         storage/framework/cache/data \
+         storage/framework/sessions \
+         storage/logs \
+         bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+
 # ── Storage symlink ───────────────────────────────────────────
-# public/storage → storage/app/public  (needed for uploaded images)
 php artisan storage:link --force 2>/dev/null || true
 
 # ── Laravel caches ───────────────────────────────────────────

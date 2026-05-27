@@ -1,0 +1,124 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+@plugin '@tailwindcss/forms';
+
+/* ── Design tokens ── */
+@theme {
+    /* Fonts */
+    --font-display: 'Sora', system-ui, sans-serif;
+    --font-serif:   'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --font-sans:    'Sora', system-ui, -apple-system, sans-serif;
+
+    /* SpaceGaps palette */
+    --color-sg-paper:          #F9F7F2;   /* warm off-white */
+    --color-sg-ink:            #1A1917;   /* near-black */
+    --color-sg-body:           #3D3B37;   /* body text */
+    --color-sg-muted:          #8A8680;   /* secondary text */
+    --color-sg-rule:           #D8D4CC;   /* borders light */
+    --color-sg-rule-dark:      #2E2C29;   /* borders dark */
+    --color-sg-accent:         #C0392B;   /* editorial red */
+    --color-sg-accent-hover:   #A93226;
+}
+
+/* ── Class-based dark mode ── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Base ── */
+@layer base {
+    [x-cloak] { display: none !important; }
+
+    body {
+        font-family: var(--font-serif);
+        font-size: 20px;
+        font-weight: 300;
+        background-color: var(--color-sg-paper);
+        color: var(--color-sg-ink);
+    }
+    .dark body {
+        background-color: var(--color-sg-ink);
+        color: var(--color-sg-paper);
+    }
+
+    .font-display { font-family: var(--font-display) !important; }
+    .font-serif   { font-family: var(--font-serif)   !important; }
+
+    /* Selection colour */
+    ::selection { background: var(--color-sg-accent); color: #fff; }
+}
+
+/* ── Components ── */
+
+/* Buttons */
+.btn-primary {
+    @apply inline-flex items-center px-6 py-2.5 bg-sg-ink dark:bg-sg-paper text-sg-paper dark:text-sg-ink text-xs font-bold uppercase tracking-widest border border-sg-ink dark:border-sg-paper hover:bg-sg-accent hover:border-sg-accent dark:hover:bg-sg-accent dark:hover:border-sg-accent hover:text-white transition;
+}
+.btn-secondary {
+    @apply inline-flex items-center px-6 py-2.5 border border-sg-rule dark:border-sg-rule-dark text-sg-body dark:text-sg-paper/70 text-xs font-bold uppercase tracking-widest hover:border-sg-ink dark:hover:border-sg-paper hover:text-sg-ink dark:hover:text-sg-paper transition;
+}
+
+/* Public form input */
+.form-input {
+    @apply w-full px-4 py-3 border border-sg-rule dark:border-sg-rule-dark bg-transparent text-sg-ink dark:text-sg-paper placeholder-sg-muted focus:outline-none focus:ring-1 focus:ring-sg-ink dark:focus:ring-sg-paper transition text-sm;
+}
+
+/* Admin helpers */
+.admin-label {
+    @apply block text-sm font-medium text-zinc-700 mb-1.5;
+}
+.admin-input {
+    @apply w-full px-3 py-2.5 rounded-lg border border-zinc-300 bg-white text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition;
+}
+.admin-error { @apply mt-1.5 text-sm text-red-500; }
+
+/* Scrollbar hide */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* ── Global type scale ── */
+html { font-size: 20px; }
+
+/* ── Article prose overrides ── */
+.prose {
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    font-weight: 300;
+    line-height: 1.75;
+    color: var(--color-sg-body);
+}
+.dark .prose { color: color-mix(in srgb, var(--color-sg-paper) 80%, transparent); }
+
+.prose p {
+    margin-top: 0.9em;
+    margin-bottom: 0.9em;
+    font-size: 1rem;
+    font-weight: 300;
+    line-height: 1.75;
+}
+
+.prose h1 { font-size: 1.5rem;   }
+.prose h2 { font-size: 1.2rem;   margin-top: 1.6em; }
+.prose h3 { font-size: 1.05rem;  }
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--color-sg-ink);
+    line-height: 1.2;
+}
+.dark .prose h1, .dark .prose h2, .dark .prose h3, .dark .prose h4 {
+    color: var(--color-sg-paper);
+}
+
+.prose a { color: var(--color-sg-accent); text-decoration: none; }
+.prose a:hover { text-decoration: underline; }
+
+.prose blockquote {
+    border-left: 3px solid var(--color-sg-accent);
+    padding-left: 1.25rem;
+    font-style: italic;
+    color: var(--color-sg-muted);
+    background: none;
+}
+
+.prose ul, .prose ol { font-size: inherit; }
+.prose li { margin-top: 0.3em; margin-bottom: 0.3em; }

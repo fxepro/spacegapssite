@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: spacegaps
+    runtime: docker
+    plan: starter          # upgrade to standard for more RAM if needed
+    healthCheckPath: /
+    autoDeploy: true
+
+    envVars:
+      - key: APP_NAME
+        value: SpaceGaps
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        generateValue: true   # Render generates a random key on first deploy
+      - key: APP_URL
+        value: https://spacegaps.onrender.com   # replace with your actual domain
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: DB_DATABASE
+        value: /var/data/database.sqlite
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: error
+
+    disk:
+      name: spacegaps-data
+      mountPath: /var/data
+      sizeGB: 1             # holds sqlite db + uploaded images

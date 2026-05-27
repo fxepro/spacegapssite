@@ -44,7 +44,7 @@ RUN npm ci
 COPY . .
 
 # ── Build frontend assets ─────────────────────────────────────
-RUN npm run build
+RUN npm run build && chmod -R 755 public/build
 
 # ── Laravel bootstrap ─────────────────────────────────────────
 RUN php artisan package:discover --ansi 2>/dev/null || true

@@ -16,7 +16,7 @@ services:
       - key: APP_KEY
         generateValue: true   # Render generates a random key on first deploy
       - key: APP_URL
-        value: https://spacegaps.onrender.com   # replace with your actual domain
+        value: https://spacegapssite.onrender.com
       - key: DB_CONNECTION
         value: sqlite
       - key: DB_DATABASE

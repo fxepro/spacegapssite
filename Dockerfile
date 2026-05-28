@@ -5,8 +5,7 @@ RUN apk add --no-cache \
     nginx \
     nodejs \
     npm \
-    sqlite \
-    sqlite-dev \
+    postgresql-dev \
     libpng-dev \
     libjpeg-turbo-dev \
     freetype-dev \
@@ -19,7 +18,8 @@ RUN apk add --no-cache \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 RUN docker-php-ext-install \
     pdo \
-    pdo_sqlite \
+    pdo_pgsql \
+    pgsql \
     bcmath \
     gd \
     zip \

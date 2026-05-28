@@ -3,20 +3,6 @@ set -e
 
 cd /app
 
-# ── Persistent disk: ensure SQLite file exists ────────────────
-# Render mounts the persistent disk at /var/data.
-# If DB_DATABASE points there, create the file if it doesn't exist yet.
-DB_PATH="${DB_DATABASE:-/var/data/database.sqlite}"
-DB_DIR=$(dirname "$DB_PATH")
-
-if [ ! -d "$DB_DIR" ]; then
-    mkdir -p "$DB_DIR"
-fi
-if [ ! -f "$DB_PATH" ]; then
-    echo "==> Creating SQLite database at $DB_PATH..."
-    touch "$DB_PATH"
-fi
-
 # ── Ensure storage directories exist ─────────────────────────
 mkdir -p storage/framework/views \
          storage/framework/cache/data \
@@ -28,6 +14,17 @@ chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 
 # ── Storage symlink ───────────────────────────────────────────
 php artisan storage:link --force 2>/dev/null || true
+
+# ── Wait for PostgreSQL to be ready ──────────────────────────
+echo "==> Waiting for PostgreSQL..."
+until php -r "
+    \$dsn = 'pgsql:host=' . getenv('DB_HOST') . ';port=' . (getenv('DB_PORT') ?: 5432) . ';dbname=' . getenv('DB_DATABASE');
+    new PDO(\$dsn, getenv('DB_USERNAME'), getenv('DB_PASSWORD'));
+" 2>/dev/null; do
+    echo "  PostgreSQL not ready, retrying in 2s..."
+    sleep 2
+done
+echo "  PostgreSQL is ready."
 
 # ── Laravel caches ───────────────────────────────────────────
 echo "==> Caching config / routes / views..."
@@ -43,7 +40,7 @@ php artisan migrate --force
 echo "==> Seeding admin user and categories..."
 php artisan db:seed --force
 
-# ── Import real posts from MDX files (always runs, --fresh replaces sample posts) ──
+# ── Import real posts from MDX files ─────────────────────────
 echo "==> Importing posts from MDX files..."
 php artisan content:import --type=posts --fresh
 

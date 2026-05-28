@@ -15,13 +15,19 @@ chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 # ── Storage symlink ───────────────────────────────────────────
 php artisan storage:link --force 2>/dev/null || true
 
-# ── Wait for PostgreSQL to be ready ──────────────────────────
-echo "==> Waiting for PostgreSQL..."
+# ── Wait for PostgreSQL to be ready (max 30s) ────────────────
+echo "==> Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT:-5432}..."
+TRIES=0
 until php -r "
     \$dsn = 'pgsql:host=' . getenv('DB_HOST') . ';port=' . (getenv('DB_PORT') ?: 5432) . ';dbname=' . getenv('DB_DATABASE');
     new PDO(\$dsn, getenv('DB_USERNAME'), getenv('DB_PASSWORD'));
 " 2>/dev/null; do
-    echo "  PostgreSQL not ready, retrying in 2s..."
+    TRIES=$((TRIES + 1))
+    if [ $TRIES -ge 15 ]; then
+        echo "ERROR: PostgreSQL not reachable after 30s. Check DB_HOST=${DB_HOST} DB_PORT=${DB_PORT:-5432}"
+        exit 1
+    fi
+    echo "  not ready yet (attempt $TRIES/15), retrying in 2s..."
     sleep 2
 done
 echo "  PostgreSQL is ready."

@@ -6,234 +6,186 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\File;
-use League\CommonMark\Environment\Environment;
-use League\CommonMark\MarkdownConverter;
+use Illuminate\Support\Str;
 
 /**
- * Import content from the WordPress/Next.js export at docs/spacegaps_nextjs_content.
+ * Import posts from a WordPress WXR (XML) export file.
  *
  * Usage:
- *   php artisan content:import-wordpress
- *   php artisan content:import-wordpress --fresh   # truncate posts first
+ *   php artisan import:wordpress path/to/export.xml
+ *   php artisan import:wordpress path/to/export.xml --fresh
  */
 class ImportWordpress extends Command
 {
-    protected $signature   = 'content:import-wordpress {--fresh : Truncate existing posts first}';
-    protected $description = 'Import posts from the WordPress export in docs/spacegaps_nextjs_content';
-
-    private string $base;
-
-    private array $categoryColors = [
-        'Christianity'   => '#8b5cf6',
-        'World'          => '#3b82f6',
-        'Religion'       => '#a855f7',
-        'Spirituality'   => '#ec4899',
-        'America'        => '#ef4444',
-        'People'         => '#f97316',
-        'Technology'     => '#6366f1',
-        'Business'       => '#10b981',
-        'Women'          => '#f59e0b',
-        'Satire'         => '#eab308',
-        'Uncategorized'  => '#9ca3af',
-        'Other'          => '#6b7280',
-    ];
+    protected $signature   = 'import:wordpress {file : Path to the WordPress XML export file} {--fresh : Truncate posts before importing}';
+    protected $description = 'Import posts from a WordPress WXR XML export';
 
     public function handle(): int
     {
-        $this->base = base_path('docs/spacegaps_nextjs_content');
+        $file = $this->argument('file');
 
-        if (! File::isDirectory($this->base)) {
-            $this->error("Export directory not found: {$this->base}");
+        if (!file_exists($file)) {
+            $this->error("File not found: {$file}");
             return self::FAILURE;
         }
 
         if ($this->option('fresh')) {
-            $this->warn('--fresh: truncating posts...');
+            $this->warn('Truncating existing posts...');
             Post::truncate();
         }
 
-        $this->importCategories();
-        $this->importTags();
-        $this->importPosts();
+        $this->info("Parsing {$file}...");
 
-        $this->info('Import complete.');
-        return self::SUCCESS;
-    }
+        libxml_use_internal_errors(true);
+        $xml = simplexml_load_file($file);
+        libxml_clear_errors();
 
-    private function importCategories(): void
-    {
-        $path = "{$this->base}/data/categories.json";
-        if (! File::exists($path)) {
-            $this->warn('categories.json not found — skipping.');
-            return;
+        if (!$xml) {
+            $this->error('Failed to parse XML file.');
+            return self::FAILURE;
         }
 
-        $items = json_decode(File::get($path), true);
-        foreach ($items as $item) {
-            $name  = $item['name'];
-            $color = $this->categoryColors[$name] ?? '#6366f1';
-            Category::firstOrCreate(['name' => $name], ['color' => $color]);
-        }
+        $xml->registerXPathNamespace('content', 'http://purl.org/rss/1.0/modules/content/');
+        $xml->registerXPathNamespace('excerpt', 'http://wordpress.org/export/1.2/excerpt/');
+        $xml->registerXPathNamespace('wp',      'http://wordpress.org/export/1.2/');
+        $xml->registerXPathNamespace('dc',      'http://purl.org/dc/elements/1.1/');
 
-        $this->info('Categories: ' . count($items) . ' processed.');
-    }
+        $items = $xml->xpath('//item');
+        $posts = array_filter($items, function ($item) {
+            $item->registerXPathNamespace('wp', 'http://wordpress.org/export/1.2/');
+            $type   = (string) ($item->xpath('wp:post_type')[0] ?? '');
+            $status = (string) ($item->xpath('wp:status')[0] ?? '');
+            return $type === 'post' && in_array($status, ['publish', 'draft']);
+        });
 
-    private function importTags(): void
-    {
-        $path = "{$this->base}/data/tags.json";
-        if (! File::exists($path)) {
-            return;
-        }
+        $total = count($posts);
+        $this->info("Found {$total} posts.");
+        $bar = $this->output->createProgressBar($total);
 
-        $items = json_decode(File::get($path), true);
-        foreach ($items as $item) {
-            Tag::firstOrCreate(['name' => $item['name']]);
-        }
+        $imported = 0;
+        $skipped  = 0;
 
-        $this->info('Tags: ' . count($items) . ' processed.');
-    }
+        foreach ($posts as $item) {
+            $item->registerXPathNamespace('content', 'http://purl.org/rss/1.0/modules/content/');
+            $item->registerXPathNamespace('excerpt', 'http://wordpress.org/export/1.2/excerpt/');
+            $item->registerXPathNamespace('wp',      'http://wordpress.org/export/1.2/');
+            $item->registerXPathNamespace('dc',      'http://purl.org/dc/elements/1.1/');
 
-    private function importPosts(): void
-    {
-        $indexPath = "{$this->base}/data/posts-index.json";
-        if (! File::exists($indexPath)) {
-            $this->error('posts-index.json not found.');
-            return;
-        }
+            $title   = (string) $item->title;
+            $slug    = (string) ($item->xpath('wp:post_name')[0] ?? '');
+            $slug    = $slug ?: Str::slug($title);
+            $status  = (string) ($item->xpath('wp:status')[0] ?? 'draft');
+            $author  = (string) ($item->xpath('dc:creator')[0] ?? 'Admin');
+            $date    = (string) ($item->xpath('wp:post_date')[0] ?? null);
+            $rawBody = (string) ($item->xpath('content:encoded')[0] ?? '');
+            $excerpt = trim((string) ($item->xpath('excerpt:encoded')[0] ?? ''));
 
-        $posts = json_decode(File::get($indexPath), true);
-        $this->info('Importing ' . count($posts) . ' posts...');
-        $bar = $this->output->createProgressBar(count($posts));
+            $content = $this->stripShortcodes($rawBody);
+            $content = $this->cleanHtml($content);
 
-        foreach ($posts as $meta) {
-            if (($meta['status'] ?? '') !== 'publish') {
+            // Skip posts with no meaningful content
+            if (strlen(trim(strip_tags($content))) < 30) {
+                $skipped++;
                 $bar->advance();
                 continue;
             }
 
-            $content = $this->resolveContent($meta);
+            $featuredImage = $this->extractFeaturedImage($item, $xml);
+
+            // Categories & tags
+            $catIds = [];
+            $tagIds = [];
+            foreach ($item->category as $cat) {
+                $domain = (string) $cat->attributes()['domain'];
+                $name   = trim((string) $cat);
+                if (!$name || strtolower($name) === 'uncategorized') continue;
+
+                if ($domain === 'category') {
+                    $catIds[] = Category::firstOrCreate(
+                        ['name' => $name],
+                        ['slug' => Str::slug($name), 'color' => '#6366f1']
+                    )->id;
+                } elseif ($domain === 'post_tag') {
+                    $tagIds[] = Tag::firstOrCreate(
+                        ['name' => $name],
+                        ['slug' => Str::slug($name)]
+                    )->id;
+                }
+            }
 
             $post = Post::updateOrCreate(
-                ['slug' => $meta['slug']],
+                ['slug' => $slug],
                 [
-                    'title'          => $meta['title'],
-                    'slug'           => $meta['slug'],
-                    'excerpt'        => $this->resolveExcerpt($meta, $content),
+                    'title'          => $title,
+                    'slug'           => $slug,
+                    'excerpt'        => $excerpt ?: null,
                     'content'        => $content,
-                    'featured_image' => $meta['featuredImage'] ?? null,
-                    'status'         => 'published',
-                    'author'         => 'Admin',
+                    'featured_image' => $featuredImage,
+                    'status'         => $status === 'publish' ? 'published' : 'draft',
+                    'author'         => $author,
                     'featured'       => false,
-                    'published_at'   => date('Y-m-d H:i:s', strtotime($meta['date'])),
+                    'published_at'   => $date ? date('Y-m-d H:i:s', strtotime($date)) : now(),
                 ]
             );
 
-            $post->categories()->sync($this->resolveCategories($meta['categories'] ?? []));
-            $post->tags()->sync($this->resolveTags($meta['tags'] ?? []));
+            $post->categories()->sync($catIds);
+            $post->tags()->sync($tagIds);
 
+            $imported++;
             $bar->advance();
         }
 
         $bar->finish();
         $this->newLine();
+        $this->info("Done. Imported: {$imported}, Skipped (empty content): {$skipped}");
+
+        return self::SUCCESS;
     }
 
-    private function resolveContent(array $meta): string
+    private function stripShortcodes(string $content): string
     {
-        // Prefer MDX (clean markdown), fall back to raw HTML
-        $mdxPath  = "{$this->base}/{$meta['mdxPath']}";
-        $htmlPath = "{$this->base}/{$meta['rawHtmlPath']}";
-
-        if (File::exists($mdxPath)) {
-            [, $body] = $this->parseFrontmatter(File::get($mdxPath));
-            return $this->renderMarkdown($body);
+        // Self-closing: [shortcode /]
+        $content = preg_replace('/\[\w[\w_-]*[^\]]*\/\]/s', '', $content);
+        // Opening/closing tags — multiple passes for nesting: [fusion_text]...[/fusion_text]
+        for ($i = 0; $i < 8; $i++) {
+            $content = preg_replace('/\[\/?\w[\w_-]*[^\]]*\]/s', '', $content);
         }
-
-        if (File::exists($htmlPath)) {
-            return $this->cleanFusionHtml(File::get($htmlPath));
-        }
-
-        return '';
+        return $content;
     }
 
-    private function resolveExcerpt(array $meta, string $htmlContent): ?string
+    private function cleanHtml(string $html): string
     {
-        // MDX sometimes has an empty excerpt field
-        if (! empty($meta['excerpt'])) {
-            return $meta['excerpt'];
+        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $html = preg_replace('/(\r?\n){3,}/', "\n\n", $html);
+        $html = preg_replace('/[\x{200B}-\x{200D}\x{FEFF}]/u', '', $html);
+        return trim($html);
+    }
+
+    private function extractFeaturedImage(\SimpleXMLElement $item, \SimpleXMLElement $xml): ?string
+    {
+        $item->registerXPathNamespace('wp', 'http://wordpress.org/export/1.2/');
+
+        $thumbnailId = null;
+        foreach ($item->xpath('wp:postmeta') as $meta) {
+            $meta->registerXPathNamespace('wp', 'http://wordpress.org/export/1.2/');
+            if ((string) ($meta->xpath('wp:meta_key')[0] ?? '') === '_thumbnail_id') {
+                $thumbnailId = (string) ($meta->xpath('wp:meta_value')[0] ?? '');
+                break;
+            }
         }
 
-        // Auto-generate from first paragraph of content
-        if ($htmlContent) {
-            $text = strip_tags($htmlContent);
-            $text = preg_replace('/\s+/', ' ', trim($text));
-            if (strlen($text) > 20) {
-                return mb_substr($text, 0, 280);
+        if (!$thumbnailId) return null;
+
+        $xml->registerXPathNamespace('wp', 'http://wordpress.org/export/1.2/');
+        foreach ($xml->xpath('//item') as $att) {
+            $att->registerXPathNamespace('wp', 'http://wordpress.org/export/1.2/');
+            if ((string) ($att->xpath('wp:post_id')[0] ?? '')   === $thumbnailId &&
+                (string) ($att->xpath('wp:post_type')[0] ?? '') === 'attachment') {
+                $url = (string) ($att->xpath('wp:attachment_url')[0] ?? $att->guid ?? '');
+                return $url ?: null;
             }
         }
 
         return null;
-    }
-
-    private function parseFrontmatter(string $raw): array
-    {
-        if (preg_match('/^---\s*\n(.*?)\n---\s*\n(.*)/s', $raw, $m)) {
-            return [[], $m[2]];
-        }
-        return [[], $raw];
-    }
-
-    private function renderMarkdown(string $markdown): string
-    {
-        // Strip MDX JSX components
-        $markdown = preg_replace('/<[A-Z][^>]*>.*?<\/[A-Z][^>]*>/s', '', $markdown);
-        $markdown = preg_replace('/<[A-Z][^\/]*\/>/s', '', $markdown);
-
-        $environment = Environment::createGfmEnvironment();
-        $converter   = new MarkdownConverter($environment);
-
-        return (string) $converter->convert($markdown);
-    }
-
-    private function cleanFusionHtml(string $html): string
-    {
-        // Extract real content from inside [fusion_text]...[/fusion_text] and
-        // [fusion_title]...[/fusion_title] blocks, discarding all shortcode tags.
-        $out = '';
-
-        // Pull text/title block contents
-        preg_match_all('/\[fusion_(?:text|title)[^\]]*\](.*?)\[\/fusion_(?:text|title)\]/s', $html, $matches);
-        foreach ($matches[1] as $block) {
-            $block = trim($block);
-            if ($block !== '') {
-                $out .= $block . "\n\n";
-            }
-        }
-
-        // If no fusion blocks found, strip all shortcodes and return raw
-        if ($out === '') {
-            $out = preg_replace('/\[[^\]]+\]/s', '', $html);
-        }
-
-        // Remove leftover shortcode artifacts
-        $out = preg_replace('/\[[^\]]+\]/s', '', $out);
-
-        return trim($out);
-    }
-
-    private function resolveCategories(array $names): array
-    {
-        return array_map(function (string $name) {
-            $color = $this->categoryColors[$name] ?? '#6366f1';
-            return Category::firstOrCreate(['name' => $name], ['color' => $color])->id;
-        }, array_filter($names));
-    }
-
-    private function resolveTags(array $names): array
-    {
-        return array_map(function (string $name) {
-            return Tag::firstOrCreate(['name' => $name])->id;
-        }, array_filter($names));
     }
 }

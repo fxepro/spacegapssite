@@ -46,10 +46,6 @@ php artisan migrate --force
 echo "==> Seeding admin user and categories..."
 php artisan db:seed --force
 
-# ── Import real posts from MDX files ─────────────────────────
-echo "==> Importing posts from MDX files..."
-php artisan content:import --type=posts --fresh
-
 echo "==> Verifying built assets..."
 ls -la /app/public/build/ 2>/dev/null && ls -la /app/public/build/assets/ 2>/dev/null || echo "WARNING: public/build not found!"
 

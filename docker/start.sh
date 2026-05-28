@@ -39,19 +39,13 @@ php artisan view:cache
 echo "==> Running migrations..."
 php artisan migrate --force
 
-# ── Seed on first deploy (empty users table) ─────────────────
-USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1)
-if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
-    echo "==> Seeding initial admin user + categories..."
-    php artisan db:seed --force
-fi
+# ── Seed admin user + categories (idempotent via firstOrCreate) ──
+echo "==> Seeding admin user and categories..."
+php artisan db:seed --force
 
-# ── Import content from MDX files on first deploy ────────────
-POST_COUNT=$(php artisan tinker --execute="echo \App\Models\Post::count();" 2>/dev/null | tail -1)
-if [ "$POST_COUNT" = "0" ] || [ -z "$POST_COUNT" ]; then
-    echo "==> Importing content from MDX files..."
-    php artisan content:import --type=posts --fresh
-fi
+# ── Import real posts from MDX files (always runs, --fresh replaces sample posts) ──
+echo "==> Importing posts from MDX files..."
+php artisan content:import --type=posts --fresh
 
 echo "==> Verifying built assets..."
 ls -la /app/public/build/ 2>/dev/null && ls -la /app/public/build/assets/ 2>/dev/null || echo "WARNING: public/build not found!"

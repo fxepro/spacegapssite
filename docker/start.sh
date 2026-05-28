@@ -3,6 +3,8 @@ set -e
 
 cd /app
 
+echo "==> DB config: host=${DB_HOST} port=${DB_PORT:-5432} db=${DB_DATABASE} user=${DB_USERNAME}"
+
 # ── Ensure storage directories exist ─────────────────────────
 mkdir -p storage/framework/views \
          storage/framework/cache/data \
@@ -15,19 +17,26 @@ chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 # ── Storage symlink ───────────────────────────────────────────
 php artisan storage:link --force 2>/dev/null || true
 
-# ── Wait for PostgreSQL to be ready (max 30s) ────────────────
+# ── Wait for PostgreSQL (max 60s) ─────────────────────────────
 echo "==> Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT:-5432}..."
 TRIES=0
 until php -r "
-    \$dsn = 'pgsql:host=' . getenv('DB_HOST') . ';port=' . (getenv('DB_PORT') ?: 5432) . ';dbname=' . getenv('DB_DATABASE');
-    new PDO(\$dsn, getenv('DB_USERNAME'), getenv('DB_PASSWORD'));
-" 2>/dev/null; do
+    try {
+        \$dsn = 'pgsql:host=' . getenv('DB_HOST') . ';port=' . (getenv('DB_PORT') ?: 5432) . ';dbname=' . getenv('DB_DATABASE');
+        new PDO(\$dsn, getenv('DB_USERNAME'), getenv('DB_PASSWORD'), [PDO::ATTR_TIMEOUT => 5]);
+        echo 'ok';
+    } catch (Exception \$e) {
+        file_put_contents('php://stderr', \$e->getMessage() . PHP_EOL);
+        exit(1);
+    }
+" 2>/tmp/pg_error; do
     TRIES=$((TRIES + 1))
-    if [ $TRIES -ge 15 ]; then
-        echo "ERROR: PostgreSQL not reachable after 30s. Check DB_HOST=${DB_HOST} DB_PORT=${DB_PORT:-5432}"
+    echo "  attempt $TRIES: $(cat /tmp/pg_error 2>/dev/null | head -1)"
+    if [ $TRIES -ge 30 ]; then
+        echo "ERROR: PostgreSQL unreachable after 60s. Last error: $(cat /tmp/pg_error 2>/dev/null)"
+        echo "  DB_HOST=${DB_HOST} DB_PORT=${DB_PORT:-5432} DB_DATABASE=${DB_DATABASE}"
         exit 1
     fi
-    echo "  not ready yet (attempt $TRIES/15), retrying in 2s..."
     sleep 2
 done
 echo "  PostgreSQL is ready."
@@ -42,18 +51,16 @@ php artisan view:cache
 echo "==> Running migrations..."
 php artisan migrate --force
 
-# ── Seed admin user + categories (idempotent via firstOrCreate) ──
-echo "==> Seeding admin user and categories..."
+# ── Seed admin user + categories (idempotent) ────────────────
+echo "==> Seeding..."
 php artisan db:seed --force
 
-echo "==> Verifying built assets..."
-ls -la /app/public/build/ 2>/dev/null && ls -la /app/public/build/assets/ 2>/dev/null || echo "WARNING: public/build not found!"
+# ── Assets check ─────────────────────────────────────────────
+ls -la /app/public/build/assets/ 2>/dev/null || echo "WARNING: public/build/assets not found"
 
-echo "==> Configuring Nginx on port ${PORT:-8080}..."
+# ── Configure Nginx port ──────────────────────────────────────
+echo "==> Starting on port ${PORT:-8080}..."
 sed -i "s/listen 8080;/listen ${PORT:-8080};/" /etc/nginx/nginx.conf
 
-echo "==> Starting PHP-FPM..."
 php-fpm -D
-
-echo "==> Starting Nginx..."
 exec nginx -g 'daemon off;'

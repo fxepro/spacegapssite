@@ -49,6 +49,9 @@ fi
 echo "==> Verifying built assets..."
 ls -la /app/public/build/ 2>/dev/null && ls -la /app/public/build/assets/ 2>/dev/null || echo "WARNING: public/build not found!"
 
+echo "==> Configuring Nginx on port ${PORT:-8080}..."
+sed -i "s/listen 8080;/listen ${PORT:-8080};/" /etc/nginx/nginx.conf
+
 echo "==> Starting PHP-FPM..."
 php-fpm -D
 

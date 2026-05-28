@@ -76,20 +76,19 @@ class ImportContent extends Command
 
             $slug = $front['slug'] ?? Str::slug($front['title'] ?? $file->getFilenameWithoutExtension());
 
-            Post::updateOrCreate(['slug' => $slug], [
+            $post = Post::updateOrCreate(['slug' => $slug], [
                 'title'          => $front['title'] ?? $slug,
                 'slug'           => $slug,
-                'excerpt'        => $front['excerpt'] ?? null,
+                'excerpt'        => is_array($front['excerpt'] ?? null) ? null : ($front['excerpt'] ?? null),
                 'content'        => $this->renderMarkdown($body),
                 'featured_image' => $front['featuredImage'] ?? $front['featured_image'] ?? null,
                 'status'         => $front['status'] ?? 'published',
                 'author'         => $front['author'] ?? 'Admin',
                 'featured'       => filter_var($front['featured'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'published_at'   => isset($front['date']) ? date('Y-m-d H:i:s', strtotime($front['date'])) : now(),
-            ])->tap(function (Post $post) use ($front) {
-                $post->categories()->sync($this->resolveCategories($front['categories'] ?? []));
-                $post->tags()->sync($this->resolveTags($front['tags'] ?? []));
-            });
+            ]);
+            $post->categories()->sync($this->resolveCategories($front['categories'] ?? []));
+            $post->tags()->sync($this->resolveTags($front['tags'] ?? []));
 
             $bar->advance();
         }
@@ -114,10 +113,10 @@ class ImportContent extends Command
 
             $slug = $front['slug'] ?? Str::slug($front['title'] ?? $file->getFilenameWithoutExtension());
 
-            PortfolioItem::updateOrCreate(['slug' => $slug], [
+            $item = PortfolioItem::updateOrCreate(['slug' => $slug], [
                 'title'          => $front['title'] ?? $slug,
                 'slug'           => $slug,
-                'excerpt'        => $front['excerpt'] ?? null,
+                'excerpt'        => is_array($front['excerpt'] ?? null) ? null : ($front['excerpt'] ?? null),
                 'content'        => $this->renderMarkdown($body),
                 'featured_image' => $front['featuredImage'] ?? $front['featured_image'] ?? null,
                 'status'         => $front['status'] ?? 'published',
@@ -129,10 +128,9 @@ class ImportContent extends Command
                 'external_url'   => $front['externalUrl'] ?? $front['external_url'] ?? null,
                 'gallery'        => isset($front['gallery']) ? (array) $front['gallery'] : null,
                 'sort_order'     => (int) ($front['order'] ?? 0),
-            ])->tap(function (PortfolioItem $item) use ($front) {
-                $item->categories()->sync($this->resolveCategories($front['categories'] ?? []));
-                $item->tags()->sync($this->resolveTags($front['tags'] ?? []));
-            });
+            ]);
+            $item->categories()->sync($this->resolveCategories($front['categories'] ?? []));
+            $item->tags()->sync($this->resolveTags($front['tags'] ?? []));
 
             $bar->advance();
         }
@@ -157,23 +155,22 @@ class ImportContent extends Command
 
             $slug = $front['slug'] ?? Str::slug($front['title'] ?? $file->getFilenameWithoutExtension());
 
-            Paper::updateOrCreate(['slug' => $slug], [
+            $paper = Paper::updateOrCreate(['slug' => $slug], [
                 'title'          => $front['title'] ?? $slug,
                 'slug'           => $slug,
-                'excerpt'        => $front['excerpt'] ?? null,
-                'abstract'       => $front['abstract'] ?? null,
+                'excerpt'        => is_array($front['excerpt'] ?? null) ? null : ($front['excerpt'] ?? null),
+                'abstract'       => is_array($front['abstract'] ?? null) ? null : ($front['abstract'] ?? null),
                 'content'        => $this->renderMarkdown($body),
-                'references'     => $front['references'] ?? null,
+                'references'     => is_array($front['references'] ?? null) ? null : ($front['references'] ?? null),
                 'featured_image' => $front['featuredImage'] ?? $front['featured_image'] ?? null,
                 'pdf_url'        => $front['pdfUrl'] ?? $front['pdf_url'] ?? null,
                 'status'         => $front['status'] ?? 'published',
                 'author'         => $front['author'] ?? 'Admin',
                 'featured'       => filter_var($front['featured'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'published_at'   => isset($front['date']) ? date('Y-m-d H:i:s', strtotime($front['date'])) : now(),
-            ])->tap(function (Paper $paper) use ($front) {
-                $paper->categories()->sync($this->resolveCategories($front['categories'] ?? []));
-                $paper->tags()->sync($this->resolveTags($front['tags'] ?? []));
-            });
+            ]);
+            $paper->categories()->sync($this->resolveCategories($front['categories'] ?? []));
+            $paper->tags()->sync($this->resolveTags($front['tags'] ?? []));
 
             $bar->advance();
         }
@@ -216,15 +213,24 @@ class ImportContent extends Command
             if (preg_match('/^(\w[\w\s]*):\s*(.*)$/', $line, $m)) {
                 $listMode   = false;
                 $currentKey = trim($m[1]);
-                $val        = trim($m[2], '"\'');
+                $rawVal     = trim($m[2]);
+                $val        = trim($rawVal, '"\'');
 
-                if ($val === '' || $val === null) {
+                // Quoted empty string: excerpt: "" or excerpt: '' → null (not a list)
+                $isQuotedEmpty = ($rawVal === '""' || $rawVal === "''");
+
+                if ($isQuotedEmpty) {
+                    $data[$currentKey] = null;
+                } elseif ($val === '' || $val === null) {
+                    // Truly unquoted empty value → may be followed by list items
                     $data[$currentKey] = [];
                     $listMode          = true;
                 } elseif (in_array(strtolower($val), ['true', 'yes'])) {
                     $data[$currentKey] = true;
                 } elseif (in_array(strtolower($val), ['false', 'no'])) {
                     $data[$currentKey] = false;
+                } elseif ($val === '[]') {
+                    $data[$currentKey] = [];
                 } elseif (preg_match('/^\[(.+)\]$/', $val, $arr)) {
                     $data[$currentKey] = array_map(fn($v) => trim($v, ' "\''), explode(',', $arr[1]));
                 } else {
@@ -248,8 +254,9 @@ class ImportContent extends Command
         return (string) $converter->convert($markdown);
     }
 
-    private function resolveCategories(array $names): array
+    private function resolveCategories(mixed $names): array
     {
+        if (!is_array($names)) return [];
         return array_map(function (string $name) {
             return Category::firstOrCreate(
                 ['name' => $name],
@@ -258,8 +265,9 @@ class ImportContent extends Command
         }, array_filter($names));
     }
 
-    private function resolveTags(array $names): array
+    private function resolveTags(mixed $names): array
     {
+        if (!is_array($names)) return [];
         return array_map(function (string $name) {
             return Tag::firstOrCreate(['name' => $name])->id;
         }, array_filter($names));

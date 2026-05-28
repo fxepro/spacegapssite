@@ -5,19 +5,6 @@
 
 @section('content')
 
-{{-- Category ribbon --}}
-@if($categories->isNotEmpty())
-<div class="border-b border-sg-rule dark:border-sg-rule-dark bg-sg-paper dark:bg-sg-ink overflow-x-auto scrollbar-hide">
-    <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-0 min-w-max">
-        @foreach($categories as $cat)
-            <a href="{{ route('categories.show', $cat->slug) }}"
-               class="px-4 py-2.5 text-[12px] font-semibold uppercase tracking-widest border-r border-sg-rule dark:border-sg-rule-dark first:border-l text-sg-muted hover:text-sg-ink dark:hover:text-sg-paper whitespace-nowrap transition">
-                {{ $cat->name }}
-            </a>
-        @endforeach
-    </div>
-</div>
-@endif
 
 <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
 

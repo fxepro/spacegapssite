@@ -7,21 +7,19 @@
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
     {{-- Header --}}
-    <div class="mb-10">
-        <h1 class="text-2xl font-extrabold tracking-tight">Blog</h1>
+    <div class="mb-10 text-center">
+        <h1 class="font-display text-2xl font-extrabold uppercase tracking-widest">Blog</h1>
         <p class="mt-1.5 text-sg-muted text-xs">Essays, ideas, and writing.</p>
     </div>
 
     {{-- Category filter --}}
     @if($categories->isNotEmpty())
-        <div class="flex flex-wrap justify-center gap-3 mb-10">
-            <a href="{{ route('blog.index') }}" class="font-display text-base font-semibold px-4 py-2 rounded-full {{ !request('category') ? 'bg-indigo-600 text-white' : 'border border-zinc-300 dark:border-zinc-600 text-zinc-600 dark:text-zinc-300 hover:border-indigo-400' }} transition">
-                All
-            </a>
+        <div class="flex flex-wrap justify-center items-center gap-x-8 gap-y-3 mb-12">
             @foreach($categories as $cat)
                 <a href="{{ route('categories.show', $cat->slug) }}"
-                    class="font-display text-base font-semibold px-4 py-2 rounded-full border border-zinc-300 dark:border-zinc-600 text-zinc-600 dark:text-zinc-300 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
-                    {{ $cat->name }} <span class="text-zinc-400 ml-1 text-sm font-normal">{{ $cat->posts_count }}</span>
+                   class="font-display text-[13px] font-extrabold uppercase tracking-widest text-sg-muted hover:text-sg-ink dark:hover:text-sg-paper transition relative group">
+                    {{ $cat->name }}
+                    <span class="absolute -bottom-0.5 left-0 w-0 h-[2px] bg-sg-accent group-hover:w-full transition-all duration-200"></span>
                 </a>
             @endforeach
         </div>

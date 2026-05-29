@@ -13,13 +13,16 @@ class Paper extends Model
 
     protected $fillable = [
         'title', 'slug', 'excerpt', 'content', 'abstract', 'references',
+        'citations', 'gallery',
         'featured_image', 'pdf_url', 'status', 'author',
         'reading_time', 'featured', 'published_at',
     ];
 
     protected $casts = [
         'published_at' => 'datetime',
-        'featured' => 'boolean',
+        'featured'     => 'boolean',
+        'citations'    => 'array',
+        'gallery'      => 'array',
     ];
 
     public function getSlugOptions(): SlugOptions

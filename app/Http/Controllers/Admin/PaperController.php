@@ -26,6 +26,8 @@ class PaperController extends Controller
     public function store(Request $request)
     {
         $data = $this->validate($request);
+        $data['citations'] = $this->parseCitations($request->input('citations_json', ''));
+        $data['gallery']   = $this->parseGallery($request->input('gallery_raw', ''));
         $paper = Paper::create($data);
         $this->syncRelations($paper, $request);
         return redirect()->route('admin.papers.index')->with('success', 'Paper created.');
@@ -42,6 +44,8 @@ class PaperController extends Controller
     public function update(Request $request, Paper $paper)
     {
         $data = $this->validate($request, $paper);
+        $data['citations'] = $this->parseCitations($request->input('citations_json', ''));
+        $data['gallery']   = $this->parseGallery($request->input('gallery_raw', ''));
         $paper->update($data);
         $this->syncRelations($paper, $request);
         return redirect()->route('admin.papers.index')->with('success', 'Paper updated.');
@@ -58,7 +62,7 @@ class PaperController extends Controller
         return $request->validate([
             'title' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:papers,slug' . ($paper ? ",{$paper->id}" : ''),
-            'excerpt' => 'nullable|string|max:500',
+            'excerpt' => 'nullable|string|max:2000',
             'abstract' => 'nullable|string',
             'content' => 'nullable|string',
             'references' => 'nullable|string',
@@ -75,5 +79,17 @@ class PaperController extends Controller
     {
         $paper->categories()->sync($request->input('categories', []));
         $paper->tags()->sync($request->input('tags', []));
+    }
+
+    private function parseCitations(string $json): array
+    {
+        $items = json_decode($json, true);
+        if (!is_array($items)) return [];
+        return array_values(array_filter($items, fn($c) => !empty(trim($c['text'] ?? ''))));
+    }
+
+    private function parseGallery(string $raw): array
+    {
+        return array_values(array_filter(array_map('trim', explode("\n", $raw))));
     }
 }

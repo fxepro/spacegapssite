@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\BookController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
@@ -27,6 +28,10 @@ Route::get('/portfolio/{portfolioItem:slug}', [PortfolioController::class, 'show
 Route::get('/papers', [PaperController::class, 'index'])->name('papers.index');
 Route::get('/papers/{paper:slug}', [PaperController::class, 'show'])->name('papers.show');
 
+Route::get('/books', [BookController::class, 'index'])->name('books.index');
+Route::get('/books/{book:slug}', [BookController::class, 'show'])->name('books.show');
+Route::get('/books/{book:slug}/{chapter:slug}', [BookController::class, 'chapter'])->name('books.chapter');
+
 Route::get('/categories/{category:slug}', [CategoryController::class, 'show'])->name('categories.show');
 Route::get('/tags/{tag:slug}', [TagController::class, 'show'])->name('tags.show');
 
@@ -46,6 +51,19 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('portfolio', Admin\PortfolioController::class)->parameters(['portfolio' => 'portfolioItem']);
     Route::resource('papers', Admin\PaperController::class);
     Route::resource('categories', Admin\CategoryController::class);
+
+    // Books + nested chapters
+    Route::resource('books', Admin\BookController::class);
+    Route::prefix('books/{book}')->name('books.')->group(function () {
+        Route::get('chapters', [Admin\BookChapterController::class, 'index'])->name('chapters.index');
+        Route::get('chapters/create', [Admin\BookChapterController::class, 'create'])->name('chapters.create');
+        Route::post('chapters', [Admin\BookChapterController::class, 'store'])->name('chapters.store');
+        Route::get('chapters/{chapter}/edit', [Admin\BookChapterController::class, 'edit'])->name('chapters.edit');
+        Route::put('chapters/{chapter}', [Admin\BookChapterController::class, 'update'])->name('chapters.update');
+        Route::delete('chapters/{chapter}', [Admin\BookChapterController::class, 'destroy'])->name('chapters.destroy');
+        Route::post('chapters/{chapter}/move-up', [Admin\BookChapterController::class, 'moveUp'])->name('chapters.move-up');
+        Route::post('chapters/{chapter}/move-down', [Admin\BookChapterController::class, 'moveDown'])->name('chapters.move-down');
+    });
 
     Route::get('/tags', [Admin\TagController::class, 'index'])->name('tags.index');
     Route::post('/tags', [Admin\TagController::class, 'store'])->name('tags.store');

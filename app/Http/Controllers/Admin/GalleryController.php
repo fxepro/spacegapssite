@@ -33,10 +33,10 @@ class GalleryController extends Controller
         foreach ($request->file('files', []) as $file) {
             $dir  = 'gallery/' . now()->format('Y/m');
             $name = Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs($dir, $name, 'public');
+            $path = $file->storeAs($dir, $name, 'r2');
 
             $image = GalleryImage::create([
-                'image_url'  => Storage::url($path),
+                'image_url'  => Storage::disk('r2')->url($path),
                 'title'      => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
                 'sort_order' => 0,
             ]);
@@ -78,6 +78,13 @@ class GalleryController extends Controller
 
     public function destroy(GalleryImage $gallery)
     {
+        // Delete from R2 if it's an R2-hosted file
+        $r2Url = rtrim(config('filesystems.disks.r2.url'), '/');
+        if ($r2Url && str_starts_with($gallery->image_url, $r2Url)) {
+            $path = ltrim(str_replace($r2Url, '', $gallery->image_url), '/');
+            Storage::disk('r2')->delete($path);
+        }
+
         $gallery->delete();
         return redirect()->route('admin.gallery.index')->with('success', 'Image deleted.');
     }

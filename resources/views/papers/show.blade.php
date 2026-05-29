@@ -82,13 +82,18 @@
 
     {{-- Image Gallery --}}
     @if(!empty($paper->gallery))
-        <section class="mt-12">
+        @php
+            $lbImages = array_map(fn($url, $i) => ['url' => $url, 'title' => 'Figure ' . ($i+1), 'caption' => ''], $paper->gallery, array_keys($paper->gallery));
+        @endphp
+        <section class="mt-12" x-data="{ images: {{ json_encode(array_values($lbImages)) }} }">
             <h2 class="text-base font-extrabold mb-4 text-zinc-800 dark:text-zinc-100">Figures</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 @foreach($paper->gallery as $i => $imgUrl)
-                    <figure class="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                        <img src="{{ $imgUrl }}" alt="Figure {{ $i + 1 }}"
-                            class="w-full object-cover" loading="lazy">
+                    <figure class="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 group cursor-zoom-in">
+                        <button @click="$store.lb.show(images, {{ $i }})" class="w-full block">
+                            <img src="{{ $imgUrl }}" alt="Figure {{ $i + 1 }}"
+                                class="w-full object-cover group-hover:brightness-95 transition" loading="lazy">
+                        </button>
                         <figcaption class="px-3 py-1.5 text-xs text-zinc-400 dark:text-zinc-500 text-center">
                             Figure {{ $i + 1 }}
                         </figcaption>

@@ -66,33 +66,22 @@
         </div>
     @endif
 
-    {{-- Image Gallery with Lightbox --}}
+    {{-- Image Gallery --}}
     @if($portfolioItem->gallery && count($portfolioItem->gallery) > 0)
-        <section class="mt-12" x-data="lightbox({{ json_encode($portfolioItem->gallery) }})">
+        @php
+            $lbImages = array_map(fn($url) => ['url' => $url, 'title' => '', 'caption' => ''], $portfolioItem->gallery);
+        @endphp
+        <section class="mt-12" x-data="{ images: {{ json_encode(array_values($lbImages)) }} }">
             <h2 class="text-base font-extrabold mb-6">Gallery</h2>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                 @foreach($portfolioItem->gallery as $i => $image)
-                    <button @click="open({{ $i }})" class="overflow-hidden rounded-xl aspect-square bg-zinc-100 dark:bg-zinc-800 group">
-                        <img src="{{ $image }}" alt="Gallery {{ $i + 1 }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    <button @click="$store.lb.show(images, {{ $i }})"
+                            class="overflow-hidden rounded-xl aspect-square bg-zinc-100 dark:bg-zinc-800 group">
+                        <img src="{{ $image }}" alt="Gallery {{ $i + 1 }}"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                             loading="lazy">
                     </button>
                 @endforeach
-            </div>
-
-            {{-- Lightbox overlay --}}
-            <div x-show="isOpen" x-cloak @keydown.escape.window="close()"
-                class="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
-                @click.self="close()">
-                <button @click="close()" class="absolute top-4 right-4 text-white/70 hover:text-white p-2">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-                <button @click="prev()" class="absolute left-4 text-white/70 hover:text-white p-2">
-                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <img :src="images[current]" class="max-h-[90vh] max-w-full rounded-lg object-contain">
-                <button @click="next()" class="absolute right-4 text-white/70 hover:text-white p-2">
-                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                </button>
-                <div class="absolute bottom-4 text-white/50 text-sm" x-text="`${current + 1} / ${images.length}`"></div>
             </div>
         </section>
     @endif
@@ -123,16 +112,3 @@
 </div>
 @endsection
 
-@push('scripts')
-<script>
-function lightbox(images) {
-    return {
-        images, isOpen: false, current: 0,
-        open(i) { this.current = i; this.isOpen = true; document.body.style.overflow = 'hidden'; },
-        close() { this.isOpen = false; document.body.style.overflow = ''; },
-        prev() { this.current = (this.current - 1 + this.images.length) % this.images.length; },
-        next() { this.current = (this.current + 1) % this.images.length; },
-    };
-}
-</script>
-@endpush

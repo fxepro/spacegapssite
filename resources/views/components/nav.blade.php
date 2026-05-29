@@ -24,6 +24,7 @@
                 ['Blog',      'blog.index'],
                 ['Portfolio', 'portfolio.index'],
                 ['Papers',    'papers.index'],
+                ['Gallery',   'gallery.index'],
                 ['About',     'about'],
                 ['Contact',   'contact'],
             ] as [$label, $route])
@@ -66,7 +67,7 @@
 
     {{-- Mobile dropdown --}}
     <div x-show="mobileOpen" x-cloak class="md:hidden border-t border-sg-rule dark:border-sg-rule-dark">
-        @foreach([['Home','home'],['Blog','blog.index'],['Portfolio','portfolio.index'],['Papers','papers.index'],['About','about'],['Contact','contact']] as [$l,$r])
+        @foreach([['Home','home'],['Blog','blog.index'],['Portfolio','portfolio.index'],['Papers','papers.index'],['Gallery','gallery.index'],['About','about'],['Contact','contact']] as [$l,$r])
             <a href="{{ route($r) }}"
                class="block px-6 py-3 text-[11px] font-extrabold uppercase tracking-widest border-b border-sg-rule dark:border-sg-rule-dark text-sg-body dark:text-sg-paper/70 hover:bg-sg-rule/20 transition">
                 {{ $l }}

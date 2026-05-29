@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PageController;
@@ -32,6 +33,8 @@ Route::get('/books', [BookController::class, 'index'])->name('books.index');
 Route::get('/books/{book:slug}', [BookController::class, 'show'])->name('books.show');
 Route::get('/books/{book:slug}/{chapter:slug}', [BookController::class, 'chapter'])->name('books.chapter');
 
+Route::get('/gallery', [GalleryController::class, 'index'])->name('gallery.index');
+
 Route::get('/categories/{category:slug}', [CategoryController::class, 'show'])->name('categories.show');
 Route::get('/tags/{tag:slug}', [TagController::class, 'show'])->name('tags.show');
 
@@ -50,6 +53,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('posts', Admin\PostController::class);
     Route::resource('portfolio', Admin\PortfolioController::class)->parameters(['portfolio' => 'portfolioItem']);
     Route::resource('papers', Admin\PaperController::class);
+    Route::resource('gallery', Admin\GalleryController::class);
     Route::resource('categories', Admin\CategoryController::class);
 
     // Books + nested chapters

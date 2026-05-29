@@ -6,6 +6,7 @@ use App\Models\Book;
 use App\Models\GalleryImage;
 use App\Models\Paper;
 use App\Models\PortfolioItem;
+use App\Models\Post;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -46,7 +47,17 @@ class MigrateImagesToR2 extends Command
 
         // ── Collect all image sources ────────────────────────────────────────
 
+        // posts: featured_image
+        $this->info('Posts…');
+        foreach (Post::whereNotNull('featured_image')->get() as $post) {
+            $new = $this->migrate($post->featured_image, 'posts', $dry);
+            if ($new && $new !== $post->featured_image) {
+                $post->updateQuietly(['featured_image' => $new]);
+            }
+        }
+
         // portfolio_items: featured_image + gallery[]
+        $this->info('Portfolio…');
         foreach (PortfolioItem::whereNotNull('featured_image')->get() as $item) {
             $new = $this->migrate($item->featured_image, 'portfolio', $dry);
             if ($new && $new !== $item->featured_image) {
@@ -65,6 +76,7 @@ class MigrateImagesToR2 extends Command
         }
 
         // papers: featured_image + gallery[]
+        $this->info('Papers…');
         foreach (Paper::whereNotNull('featured_image')->get() as $paper) {
             $new = $this->migrate($paper->featured_image, 'papers', $dry);
             if ($new && $new !== $paper->featured_image) {
@@ -83,6 +95,7 @@ class MigrateImagesToR2 extends Command
         }
 
         // books: cover_image + featured_image
+        $this->info('Books…');
         foreach (Book::get() as $book) {
             $changed = [];
             foreach (['cover_image', 'featured_image'] as $col) {
@@ -94,6 +107,7 @@ class MigrateImagesToR2 extends Command
         }
 
         // gallery_images: image_url
+        $this->info('Gallery…');
         foreach (GalleryImage::all() as $img) {
             $new = $this->migrate($img->image_url, 'gallery', $dry);
             if ($new && $new !== $img->image_url) {

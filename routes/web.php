@@ -70,6 +70,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::post('chapters/{chapter}/move-down', [Admin\BookChapterController::class, 'moveDown'])->name('chapters.move-down');
     });
 
+    Route::get('resume', fn() => view('admin.resume'))->name('resume');
+
     Route::get('/tags', [Admin\TagController::class, 'index'])->name('tags.index');
     Route::post('/tags', [Admin\TagController::class, 'store'])->name('tags.store');
     Route::delete('/tags/{tag}', [Admin\TagController::class, 'destroy'])->name('tags.destroy');

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\GalleryImage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class GalleryController extends Controller
 {
@@ -13,6 +15,41 @@ class GalleryController extends Controller
         $images     = GalleryImage::orderBy('sort_order')->orderByDesc('created_at')->paginate(40);
         $categories = GalleryImage::whereNotNull('category')->distinct()->orderBy('category')->pluck('category');
         return view('admin.gallery.index', compact('images', 'categories'));
+    }
+
+    /**
+     * Handle multi-file drag-and-drop upload (XHR / fetch).
+     * POST /admin/gallery/upload
+     */
+    public function upload(Request $request)
+    {
+        $request->validate([
+            'files'   => 'required|array|max:50',
+            'files.*' => 'required|file|image|max:20480', // 20 MB per file
+        ]);
+
+        $created = [];
+
+        foreach ($request->file('files', []) as $file) {
+            $dir  = 'gallery/' . now()->format('Y/m');
+            $name = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs($dir, $name, 'public');
+
+            $image = GalleryImage::create([
+                'image_url'  => Storage::url($path),
+                'title'      => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                'sort_order' => 0,
+            ]);
+
+            $created[] = [
+                'id'       => $image->id,
+                'url'      => $image->image_url,
+                'title'    => $image->title,
+                'edit_url' => route('admin.gallery.edit', $image),
+            ];
+        }
+
+        return response()->json(['images' => $created]);
     }
 
     public function create()

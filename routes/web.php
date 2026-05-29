@@ -53,6 +53,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('posts', Admin\PostController::class);
     Route::resource('portfolio', Admin\PortfolioController::class)->parameters(['portfolio' => 'portfolioItem']);
     Route::resource('papers', Admin\PaperController::class);
+    Route::post('gallery/upload', [Admin\GalleryController::class, 'upload'])->name('gallery.upload');
     Route::resource('gallery', Admin\GalleryController::class);
     Route::resource('categories', Admin\CategoryController::class);
 

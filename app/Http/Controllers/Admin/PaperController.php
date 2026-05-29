@@ -81,15 +81,16 @@ class PaperController extends Controller
         $paper->tags()->sync($request->input('tags', []));
     }
 
-    private function parseCitations(string $json): array
+    private function parseCitations(?string $json): array
     {
-        $items = json_decode($json, true);
+        $items = json_decode($json ?? '', true);
         if (!is_array($items)) return [];
         return array_values(array_filter($items, fn($c) => !empty(trim($c['text'] ?? ''))));
     }
 
-    private function parseGallery(string $raw): array
+    private function parseGallery(?string $raw): array
     {
+        if (!$raw) return [];
         return array_values(array_filter(array_map('trim', explode("\n", $raw))));
     }
 }

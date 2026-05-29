@@ -60,7 +60,7 @@ class PortfolioController extends Controller
         return $request->validate([
             'title' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:portfolio_items,slug' . ($item ? ",{$item->id}" : ''),
-            'excerpt' => 'nullable|string|max:500',
+            'excerpt' => 'nullable|string|max:2000',
             'content' => 'nullable|string',
             'featured_image' => 'nullable|string|max:500',
             'status' => 'required|in:draft,published',

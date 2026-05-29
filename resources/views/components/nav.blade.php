@@ -1,4 +1,13 @@
-<header x-data="{ mobileOpen: false }" class="font-display border-b-2 border-sg-ink dark:border-sg-paper bg-sg-paper dark:bg-sg-ink sticky top-0 z-50">
+<header x-data="{
+    mobileOpen: false,
+    masthead: true,
+    lastY: 0,
+    onScroll() {
+        const y = window.scrollY;
+        this.masthead = y < 60 || y < this.lastY;
+        this.lastY = y;
+    }
+}" @scroll.window.passive="onScroll()" class="font-display border-b-2 border-sg-ink dark:border-sg-paper bg-sg-paper dark:bg-sg-ink sticky top-0 z-50">
 
     {{-- Single top bar: date · nav links · utilities --}}
     <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center gap-0">
@@ -65,8 +74,9 @@
         @endforeach
     </div>
 
-    {{-- Masthead --}}
-    <div class="border-t border-sg-rule dark:border-sg-rule-dark text-center py-6 sm:py-8">
+    {{-- Masthead — collapses on scroll down, returns on scroll up --}}
+    <div class="border-t border-sg-rule dark:border-sg-rule-dark text-center overflow-hidden transition-all duration-300 ease-in-out"
+         :class="masthead ? 'max-h-48 py-6 sm:py-8 opacity-100' : 'max-h-0 py-0 opacity-0'">
         <a href="{{ route('home') }}" class="inline-block group">
             <div class="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-sg-ink dark:text-sg-paper leading-none group-hover:opacity-75 transition">
                 SpaceGaps

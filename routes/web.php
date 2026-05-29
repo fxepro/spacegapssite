@@ -43,7 +43,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/', [Admin\DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('posts', Admin\PostController::class);
-    Route::resource('portfolio', Admin\PortfolioController::class);
+    Route::resource('portfolio', Admin\PortfolioController::class)->parameters(['portfolio' => 'portfolioItem']);
     Route::resource('papers', Admin\PaperController::class);
     Route::resource('categories', Admin\CategoryController::class);
 

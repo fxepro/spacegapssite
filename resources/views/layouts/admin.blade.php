@@ -30,7 +30,7 @@
     </aside>
 
     {{-- Main content --}}
-    <div class="lg:pl-64 flex flex-col flex-1 min-h-screen">
+    <div class="lg:pl-64 flex flex-col flex-1 min-h-screen w-full min-w-0">
         <header class="bg-white shadow-sm px-6 py-4 flex items-center justify-between lg:px-8">
             <h1 class="text-sm font-extrabold text-zinc-800">@yield('page_title', 'Dashboard')</h1>
             <div class="flex items-center gap-4 text-sm text-zinc-500">

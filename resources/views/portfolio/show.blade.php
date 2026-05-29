@@ -33,10 +33,6 @@
 
         <h1 class="text-2xl md:text-3xl font-extrabold leading-tight">{{ $portfolioItem->title }}</h1>
 
-        @if($portfolioItem->excerpt)
-            <p class="mt-4 text-sm text-sg-muted font-light">{{ $portfolioItem->excerpt }}</p>
-        @endif
-
         {{-- Meta grid --}}
         <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-6 border-t border-b border-zinc-200 dark:border-zinc-700 py-6">
             @if($portfolioItem->client)

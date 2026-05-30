@@ -41,8 +41,8 @@ class Settings extends Model
             ['key' => 'blog',      'label' => 'Blog',      'route' => 'blog.index'],
             ['key' => 'portfolio', 'label' => 'Portfolio', 'route' => 'portfolio.index'],
             ['key' => 'papers',    'label' => 'Research',  'route' => 'papers.index'],
-            ['key' => 'gallery',   'label' => 'Gallery',   'route' => 'gallery.index'],
             ['key' => 'books',     'label' => 'Books',     'route' => 'books.index'],
+            ['key' => 'gallery',   'label' => 'Gallery',   'route' => 'gallery.index'],
             ['key' => 'videos',    'label' => 'Videos',    'route' => 'videos.index'],
             ['key' => 'contact',   'label' => 'Contact',   'route' => 'contact'],
         ];

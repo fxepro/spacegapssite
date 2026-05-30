@@ -40,7 +40,7 @@ class Settings extends Model
             ['key' => 'about',     'label' => 'Profile',   'route' => 'about'],
             ['key' => 'blog',      'label' => 'Blog',      'route' => 'blog.index'],
             ['key' => 'portfolio', 'label' => 'Portfolio', 'route' => 'portfolio.index'],
-            ['key' => 'papers',    'label' => 'Papers',    'route' => 'papers.index'],
+            ['key' => 'papers',    'label' => 'Research',  'route' => 'papers.index'],
             ['key' => 'gallery',   'label' => 'Gallery',   'route' => 'gallery.index'],
             ['key' => 'books',     'label' => 'Books',     'route' => 'books.index'],
             ['key' => 'videos',    'label' => 'Videos',    'route' => 'videos.index'],

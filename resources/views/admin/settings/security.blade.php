@@ -19,7 +19,7 @@
                 ['key' => 'nav_home',      'label' => 'Home',      'route' => 'home',          'desc' => 'The homepage'],
                 ['key' => 'nav_blog',      'label' => 'Blog',      'route' => 'blog.index',    'desc' => 'Posts and essays'],
                 ['key' => 'nav_portfolio', 'label' => 'Portfolio', 'route' => 'portfolio.index','desc' => 'Projects and work'],
-                ['key' => 'nav_papers',    'label' => 'Papers',    'route' => 'papers.index',  'desc' => 'Research and academic writing'],
+                ['key' => 'nav_papers',    'label' => 'Research',  'route' => 'papers.index',  'desc' => 'Research and academic writing'],
                 ['key' => 'nav_gallery',   'label' => 'Gallery',   'route' => 'gallery.index', 'desc' => 'Photo gallery'],
                 ['key' => 'nav_books',     'label' => 'Books',     'route' => 'books.index',   'desc' => 'Books and chapters'],
                 ['key' => 'nav_videos',    'label' => 'Videos',    'route' => 'videos.index',  'desc' => 'Video library'],

@@ -195,8 +195,12 @@ class MigrateImagesToR2 extends Command
     }
 
     /**
-     * Download an image URL, falling back to the Internet Archive (Wayback Machine)
-     * when the direct request returns a 4xx/5xx status.
+     * Download an image URL.
+     * Priority:
+     *   1. Rewrite spacegaps.com → Hostinger mirror (files still live there)
+     *   2. Original URL as-is
+     *   3. Internet Archive (Wayback Machine) snapshot
+     *
      * Returns an Http Response on success, or null on total failure.
      */
     private function fetchImage(string $url): ?\Illuminate\Http\Client\Response
@@ -208,20 +212,40 @@ class MigrateImagesToR2 extends Command
             'Referer'         => 'https://spacegaps.com/',
         ];
 
-        // ── 1. Direct download ───────────────────────────────────────────────
-        try {
-            $response = Http::timeout(30)->withHeaders($headers)->get($url);
-            if ($response->successful()) {
-                return $response;
-            }
-            $directStatus = $response->status();
-        } catch (\Throwable $e) {
-            $directStatus = $e->getMessage();
+        // ── Build candidate URLs ─────────────────────────────────────────────
+        $candidates = [];
+
+        // 1. Hostinger mirror — rewrite the domain on spacegaps.com URLs
+        if (str_contains($url, 'spacegaps.com')) {
+            $candidates[] = str_replace(
+                'spacegaps.com',
+                'mediumaquamarine-grasshopper-579747.hostingersite.com',
+                $url
+            );
         }
 
-        $this->line("  <fg=yellow>DIRECT FAIL ({$directStatus})</> {$url} — trying Wayback Machine…");
+        // 2. Original URL (may work for non-spacegaps.com sources)
+        $candidates[] = $url;
 
-        // ── 2. Wayback Machine availability check ────────────────────────────
+        // ── Try each candidate ───────────────────────────────────────────────
+        foreach ($candidates as $candidate) {
+            try {
+                $response = Http::timeout(30)->withHeaders($headers)->get($candidate);
+                if ($response->successful()) {
+                    if ($candidate !== $url) {
+                        $this->line("  <fg=cyan>HOSTINGER</> {$candidate}");
+                    }
+                    return $response;
+                }
+                $lastStatus = $response->status();
+            } catch (\Throwable $e) {
+                $lastStatus = $e->getMessage();
+            }
+        }
+
+        $this->line("  <fg=yellow>DIRECT FAIL ({$lastStatus})</> {$url} — trying Wayback Machine…");
+
+        // ── Wayback Machine fallback ─────────────────────────────────────────
         try {
             $avail = Http::timeout(10)
                 ->get('https://archive.org/wayback/available', ['url' => $url]);

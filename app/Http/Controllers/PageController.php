@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\Profile;
 use Illuminate\Http\Request;
 
 class PageController extends Controller
 {
     public function about()
     {
-        return view('pages.about');
+        $profile = Profile::current();
+        return view('pages.about', compact('profile'));
     }
 
     public function contact()

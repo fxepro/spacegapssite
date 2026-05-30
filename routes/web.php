@@ -70,6 +70,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::post('chapters/{chapter}/move-down', [Admin\BookChapterController::class, 'moveDown'])->name('chapters.move-down');
     });
 
+    Route::get('profile', [Admin\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('profile', [Admin\ProfileController::class, 'update'])->name('profile.update');
+
     Route::get('resume', fn() => view('admin.resume'))->name('resume');
 
     Route::get('/tags', [Admin\TagController::class, 'index'])->name('tags.index');

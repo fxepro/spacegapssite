@@ -228,22 +228,25 @@ class MigrateImagesToR2 extends Command
         $candidates[] = $url;
 
         // ── Try each candidate ───────────────────────────────────────────────
+        $lastStatus = '?';
         foreach ($candidates as $candidate) {
+            $label = str_contains($candidate, 'hostingersite.com') ? 'HOSTINGER' : 'DIRECT';
+            $this->line("  <fg=blue>TRY [{$label}]</> {$candidate}");
             try {
                 $response = Http::timeout(30)->withHeaders($headers)->get($candidate);
                 if ($response->successful()) {
-                    if ($candidate !== $url) {
-                        $this->line("  <fg=cyan>HOSTINGER</> {$candidate}");
-                    }
+                    $this->line("  <fg=green>OK [{$label}]</>");
                     return $response;
                 }
                 $lastStatus = $response->status();
+                $this->line("  <fg=yellow>FAIL [{$label}] ({$lastStatus})</>");
             } catch (\Throwable $e) {
                 $lastStatus = $e->getMessage();
+                $this->line("  <fg=yellow>FAIL [{$label}] ({$lastStatus})</>");
             }
         }
 
-        $this->line("  <fg=yellow>DIRECT FAIL ({$lastStatus})</> {$url} — trying Wayback Machine…");
+        $this->line("  <fg=yellow>ALL DIRECT FAILED — trying Wayback Machine…</>");
 
         // ── Wayback Machine fallback ─────────────────────────────────────────
         try {

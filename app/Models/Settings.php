@@ -43,7 +43,7 @@ class Settings extends Model
             ['key' => 'gallery',   'label' => 'Gallery',   'route' => 'gallery.index'],
             ['key' => 'books',     'label' => 'Books',     'route' => 'books.index'],
             ['key' => 'videos',    'label' => 'Videos',    'route' => 'videos.index'],
-            ['key' => 'about',     'label' => 'About',     'route' => 'about'],
+            ['key' => 'about',     'label' => 'Profile',   'route' => 'about'],
             ['key' => 'contact',   'label' => 'Contact',   'route' => 'contact'],
         ];
 

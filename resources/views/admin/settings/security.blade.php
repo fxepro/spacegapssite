@@ -23,7 +23,7 @@
                 ['key' => 'nav_gallery',   'label' => 'Gallery',   'route' => 'gallery.index', 'desc' => 'Photo gallery'],
                 ['key' => 'nav_books',     'label' => 'Books',     'route' => 'books.index',   'desc' => 'Books and chapters'],
                 ['key' => 'nav_videos',    'label' => 'Videos',    'route' => 'videos.index',  'desc' => 'Video library'],
-                ['key' => 'nav_about',     'label' => 'About',     'route' => 'about',         'desc' => 'About / Profile page'],
+                ['key' => 'nav_about',     'label' => 'Profile',   'route' => 'about',         'desc' => 'Public profile page — photo, intro, social links'],
                 ['key' => 'nav_contact',   'label' => 'Contact',   'route' => 'contact',       'desc' => 'Contact form'],
             ];
             @endphp

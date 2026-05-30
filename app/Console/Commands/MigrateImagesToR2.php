@@ -153,22 +153,11 @@ class MigrateImagesToR2 extends Command
             return $url;
         }
 
-        // Download — use browser User-Agent to bypass bot blocking
-        try {
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                    'Accept'          => 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
-                    'Accept-Language' => 'en-US,en;q=0.9',
-                    'Referer'         => 'https://spacegaps.com/',
-                ])
-                ->get($url);
-            if (!$response->successful()) {
-                throw new \RuntimeException("HTTP {$response->status()}");
-            }
-        } catch (\Throwable $e) {
+        // Download — try direct URL first, then Wayback Machine as fallback
+        $response = $this->fetchImage($url);
+
+        if (!$response) {
             $this->failed++;
-            $this->line("  <fg=red>FAIL</> {$url} — {$e->getMessage()}");
             $this->cache[$url] = null;
             return null;
         }
@@ -203,5 +192,65 @@ class MigrateImagesToR2 extends Command
 
         $this->cache[$url] = $r2Url;
         return $r2Url;
+    }
+
+    /**
+     * Download an image URL, falling back to the Internet Archive (Wayback Machine)
+     * when the direct request returns a 4xx/5xx status.
+     * Returns an Http Response on success, or null on total failure.
+     */
+    private function fetchImage(string $url): ?\Illuminate\Http\Client\Response
+    {
+        $headers = [
+            'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept'          => 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+            'Accept-Language' => 'en-US,en;q=0.9',
+            'Referer'         => 'https://spacegaps.com/',
+        ];
+
+        // ── 1. Direct download ───────────────────────────────────────────────
+        try {
+            $response = Http::timeout(30)->withHeaders($headers)->get($url);
+            if ($response->successful()) {
+                return $response;
+            }
+            $directStatus = $response->status();
+        } catch (\Throwable $e) {
+            $directStatus = $e->getMessage();
+        }
+
+        $this->line("  <fg=yellow>DIRECT FAIL ({$directStatus})</> {$url} — trying Wayback Machine…");
+
+        // ── 2. Wayback Machine availability check ────────────────────────────
+        try {
+            $avail = Http::timeout(10)
+                ->get('https://archive.org/wayback/available', ['url' => $url]);
+
+            $snapshot = $avail->json('archived_snapshots.closest');
+
+            if (empty($snapshot['available']) || ($snapshot['status'] ?? '0') !== '200') {
+                $this->line("  <fg=red>FAIL (not in Wayback)</> {$url}");
+                return null;
+            }
+
+            // Inject "if_" flag → raw file, no Wayback toolbar/JS injection
+            $waybackUrl = preg_replace(
+                '#(https://web\.archive\.org/web/\d+)(/)#',
+                '$1if_$2',
+                $snapshot['url']
+            );
+            $this->line("  <fg=cyan>WAYBACK</> {$waybackUrl}");
+
+            $response = Http::timeout(60)->withHeaders($headers)->get($waybackUrl);
+            if ($response->successful()) {
+                return $response;
+            }
+
+            $this->line("  <fg=red>FAIL (Wayback {$response->status()})</> {$url}");
+            return null;
+        } catch (\Throwable $e) {
+            $this->line("  <fg=red>FAIL (Wayback error: {$e->getMessage()})</> {$url}");
+            return null;
+        }
     }
 }

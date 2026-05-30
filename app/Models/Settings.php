@@ -37,13 +37,13 @@ class Settings extends Model
     {
         $all = [
             ['key' => 'home',      'label' => 'Home',      'route' => 'home'],
+            ['key' => 'about',     'label' => 'Profile',   'route' => 'about'],
             ['key' => 'blog',      'label' => 'Blog',      'route' => 'blog.index'],
             ['key' => 'portfolio', 'label' => 'Portfolio', 'route' => 'portfolio.index'],
             ['key' => 'papers',    'label' => 'Papers',    'route' => 'papers.index'],
             ['key' => 'gallery',   'label' => 'Gallery',   'route' => 'gallery.index'],
             ['key' => 'books',     'label' => 'Books',     'route' => 'books.index'],
             ['key' => 'videos',    'label' => 'Videos',    'route' => 'videos.index'],
-            ['key' => 'about',     'label' => 'Profile',   'route' => 'about'],
             ['key' => 'contact',   'label' => 'Contact',   'route' => 'contact'],
         ];
 

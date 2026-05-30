@@ -72,11 +72,21 @@
             </svg>
         </button>
 
-        {{-- Image --}}
-        <img :src="$store.lb.img.url"
-             :alt="$store.lb.img.title || 'Image'"
-             class="max-h-[80vh] max-w-[88vw] object-contain rounded-lg shadow-2xl"
-             @click.stop>
+        {{-- Image or Video --}}
+        <template x-if="$store.lb.img.type === 'video'">
+            <iframe :src="$store.lb.img.url"
+                    class="w-[88vw] max-w-4xl aspect-video rounded-lg shadow-2xl"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    @click.stop></iframe>
+        </template>
+        <template x-if="$store.lb.img.type !== 'video'">
+            <img :src="$store.lb.img.url"
+                 :alt="$store.lb.img.title || 'Image'"
+                 class="max-h-[80vh] max-w-[88vw] object-contain rounded-lg shadow-2xl"
+                 @click.stop>
+        </template>
 
         {{-- Caption bar --}}
         <div class="mt-4 text-center px-12 min-h-[3rem]">

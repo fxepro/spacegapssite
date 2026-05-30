@@ -5,6 +5,7 @@ use App\Http\Controllers\BlogController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\GalleryController;
+use App\Http\Controllers\VideoController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PageController;
@@ -34,6 +35,7 @@ Route::get('/books/{book:slug}', [BookController::class, 'show'])->name('books.s
 Route::get('/books/{book:slug}/{chapter:slug}', [BookController::class, 'chapter'])->name('books.chapter');
 
 Route::get('/gallery', [GalleryController::class, 'index'])->name('gallery.index');
+Route::get('/videos', [VideoController::class, 'index'])->name('videos.index');
 
 Route::get('/categories/{category:slug}', [CategoryController::class, 'show'])->name('categories.show');
 Route::get('/tags/{tag:slug}', [TagController::class, 'show'])->name('tags.show');
@@ -55,6 +57,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('papers', Admin\PaperController::class);
     Route::post('gallery/upload', [Admin\GalleryController::class, 'upload'])->name('gallery.upload');
     Route::resource('gallery', Admin\GalleryController::class);
+    Route::resource('videos', Admin\VideoController::class);
+
+    Route::get('settings/security', [Admin\SettingsController::class, 'security'])->name('settings.security');
+    Route::put('settings/security', [Admin\SettingsController::class, 'updateSecurity'])->name('settings.security.update');
     Route::resource('categories', Admin\CategoryController::class);
 
     // Books + nested chapters
